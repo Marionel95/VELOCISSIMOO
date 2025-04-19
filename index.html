@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calcolatore Guadagno</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+            flex-direction: column;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            overflow: hidden;
+        }
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            color: #5a5a5a;
+        }
+        label {
+            font-size: 16px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0 20px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4CAF50;
+            text-align: center;
+        }
+        .notification {
+            font-size: 14px;
+            color: #d9534f;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .history-container {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            width: 100%;
+        }
+        .history-table {
+            width: 100%;
+            table-layout: auto;
+            border-collapse: collapse;
+        }
+        .history-table th, .history-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .history-table th {
+            background-color: #f2f2f2;
+        }
+        .history-table td button {
+            padding: 5px 10px;
+            font-size: 14px;
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .history-table td button:hover {
+            background-color: #c9302c;
+        }
+        .buttons-group {
+            display: flex;
+            justify-content: space-between;
+        }
+        .buttons-group button {
+            width: 48%;
+        }
+        .navbar {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .navbar button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+        }
+        .navbar button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <button onclick="mostraInserimento()">Inserimento Dati</button>
+        <button onclick="mostraCronologia()">Cronologia</button>
+    </div>
+
+    <div class="container">
+        <div id="sezione-inserimento">
+            <h1>Calcolatore Guadagno</h1>
+
+            <label for="date">Data</label>
+            <input type="date" id="date" name="date">
+
+            <label for="locale">Nome Locale</label>
+            <input type="text" id="locale" name="locale" placeholder="Inserisci nome locale">
+
+            <label for="importo">Importo</label>
+            <input type="number" id="importo" name="importo" placeholder="Inserisci importo" min="0">
+
+            <label for="delivery-cost">Costo della Consegna</label>
+            <select id="delivery-cost" name="delivery-cost">
+                <option value="3.50">€3,50</option>
+                <option value="4.00">€4,00</option>
+                <option value="4.50">€4,50</option>
+            </select>
+
+            <label for="apply-percentage">Applicare il 10%?</label>
+            <input type="checkbox" id="apply-percentage" checked>
+
+            <button onclick="calcolaGuadagno()">Calcola Guadagno</button>
+
+            <div class="result" id="guadagno"></div>
+            <div class="notification" id="notification"></div>
+        </div>
+
+        <div id="sezione-cronologia" style="display:none;">
+            <h3>Cronologia</h3>
+            <div class="history-container">
+                <table class="history-table" id="history-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Locale</th>
+                            <th>Importo</th>
+                            <th>Guadagno</th>
+                            <th>Applicato 10%</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body"></tbody>
+                </table>
+            </div>
+
+            <div class="buttons-group">
+                <button onclick="scaricaPDF()">Scarica PDF</button>
+                <button onclick="eliminaCronologia()">Elimina Cronologia</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+        function mostraInserimento() {
+            document.getElementById("sezione-inserimento").style.display = "block";
+            document.getElementById("sezione-cronologia").style.display = "none";
+        }
+
+        function mostraCronologia() {
+            document.getElementById("sezione-inserimento").style.display = "none";
+            document.getElementById("sezione-cronologia").style.display = "block";
+        }
+
+        function calcolaGuadagno() {
+            const date = document.getElementById("date").value;
+            const locale = document.getElementById("locale").value;
+            const importo = parseFloat(document.getElementById("importo").value);
+            const deliveryCost = parseFloat(document.getElementById("delivery-cost").value);
+            const applyPercentage = document.getElementById("apply-percentage").checked;
+            const guadagno = (applyPercentage ? importo * 0.1 : 0) + deliveryCost;
+
+            if (!date || !locale || isNaN(importo)) {
+                document.getElementById("notification").innerText = "Per favore, compila tutti i campi correttamente.";
+                return;
+            }
+
+            document.getElementById("guadagno").innerText = `Totale Guadagno: €${guadagno.toFixed(2)}`;
+            document.getElementById("notification").innerText = "";
+
+            aggiungiAllaCronologia(date, locale, importo, guadagno, applyPercentage ? "Sì" : "No");
+        }
+
+        function aggiungiAllaCronologia(date, locale, importo, guadagno, applyPercentage) {
+            const historyTable = document.getElementById("history-body");
+            const newRow = document.createElement("tr");
+
+            newRow.innerHTML = `
+                <td>${date}</td>
+                <td>${locale}</td>
+                <td>€${importo.toFixed(2)}</td>
+                <td>€${guadagno.toFixed(2)}</td>
+                <td>${applyPercentage}</td>
+                <td><button onclick="rimuoviRiga(this)">Elimina</button></td>
+            `;
+
+            historyTable.appendChild(newRow);
+
+            salvaInLocalStorage();
+        }
+
+        function rimuoviRiga(button) {
+            const row = button.parentElement.parentElement;
+            row.remove();
+            salvaInLocalStorage();
+        }
+
+        function salvaInLocalStorage() {
+            const rows = document.querySelectorAll("#history-body tr");
+            const history = [];
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll("td");
+                history.push({
+                    date: cells[0].innerText,
+                    locale: cells[1].innerText,
+                    importo: parseFloat(cells[2].innerText.replace('€', '')),
+                    guadagno: parseFloat(cells[3].innerText.replace('€', '')),
+                    applyPercentage: cells[4].innerText
+                });
+            });
+
+            localStorage.setItem("history", JSON.stringify(history));
+        }
+
+        function caricaCronologia() {
+            const history = JSON.parse(localStorage.getItem("history")) || [];
+            const historyTable = document.getElementById("history-body");
+
+            history.forEach(item => {
+                const newRow = document.createElement("tr");
+
+                newRow.innerHTML = `
+                    <td>${item.date}</td>
+                    <td>${item.locale}</td>
+                    <td>€${item.importo.toFixed(2)}</td>
+                    <td>€${item.guadagno.toFixed(2)}</td>
+                    <td>${item.applyPercentage}</td>
+                    <td><button onclick="rimuoviRiga(this)">Elimina</button></td>
+                `;
+
+                historyTable.appendChild(newRow);
+            });
+        }
+
+        function scaricaPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const rows = document.querySelectorAll("#history-body tr");
+            let history = [];
+            let totalGuadagno = 0;
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll("td");
+                const date = cells[0].innerText;
+                const locale = cells[1].innerText;
+                const importo = parseFloat(cells[2].innerText.replace('€', ''));
+                const guadagno = parseFloat(cells[3].innerText.replace('€', ''));
+                const applyPercentage = cells[4].innerText;
+
+                history.push({ date, locale, importo, guadagno, applyPercentage });
+                totalGuadagno += guadagno;
+            });
+
+            doc.text("Cronologia Guadagni", 10, 10);
+            let yOffset = 20;
+
+            history.forEach(item => {
+                doc.text(`${item.date} - ${item.locale} - €${item.importo.toFixed(2)} - Guadagno: €${item.guadagno.toFixed(2)}${item.applyPercentage === 'Sì' ? ' (10% Applicato)' : ''}`, 10, yOffset);
+                yOffset += 10;
+            });
+
+            doc.text(`Totale Guadagno: €${totalGuadagno.toFixed(2)}`, 10, yOffset);
+            doc.save('cronologia.pdf');
+        }
+
+        function eliminaCronologia() {
+            localStorage.removeItem("history");
+            document.getElementById("history-body").innerHTML = '';
+        }
+
+        window.onload = caricaCronologia;
+    </script>
+
+</body>
+</html>
